@@ -41,13 +41,12 @@ function drawEvalChart(evals) {
   ctx.lineTo(590, 170);
   ctx.stroke();
 
-  // Scale
+  // Scale & line
   const scores = evals.map(e => clamp(e.score, -600, 600));
   const maxAbs = 600;
   const toY = (cp) => 90 - (cp / maxAbs) * 80;
   const toX = (i) => 30 + (i / Math.max(1, evals.length - 1)) * (560);
 
-  // Line
   ctx.strokeStyle = "#4cc9f0";
   ctx.beginPath();
   for (let i = 0; i < scores.length; i++) {
@@ -66,22 +65,55 @@ function clamp(x, a, b) {
 function drawMoves(evals) {
   const list = document.getElementById("moves-list");
   list.innerHTML = "";
+
   for (let i = 0; i < evals.length; i++) {
     const e = evals[i];
     const li = document.createElement("li");
     li.className = "move-item";
+
     const tag = document.createElement("span");
     tag.className = "tag " + e.tag;
     tag.textContent = e.tag;
 
     const text = document.createElement("span");
-    text.textContent = `${moveNumberLabel(i, e.color)} ${e.san} | eval: ${formatEval(e.score)} | Δ ${formatEval(e.delta)} | best: ${e.bestmove || "-"}`;
+    text.className = "move-text";
+    text.textContent = `${moveNumberLabel(i, e.color)} ${e.san} | eval: ${formatEval(e.score)} | Δ ${formatEval(e.delta)}`;
+
+    const bestText = document.createElement("span");
+    bestText.className = "bestmove-text";
+    bestText.textContent = " best: " + (e.bestmove ? e.bestmove : "-");
+
+    const btn = document.createElement("button");
+    btn.className = "show-best-btn";
+    btn.textContent = "Show best";
+    btn.title = "Show engine best move on board";
+    btn.disabled = !e.bestmove;
+    btn.addEventListener("click", () => {
+      // Sends the bestmove (UCI) to the page; content-overlay.js will draw the arrow
+      window.parent.postMessage({ type: "CA_SHOW_BESTMOVE", uci: e.bestmove }, "*");
+    });
 
     li.appendChild(tag);
     li.appendChild(text);
+    li.appendChild(bestText);
+    li.appendChild(btn);
     list.appendChild(li);
   }
 }
+
+// Optional clear arrows button in header
+(function addClearArrowsButton() {
+  const hdr = document.querySelector('.header');
+  if (!hdr) return;
+  const btn = document.createElement('button');
+  btn.textContent = 'Clear arrows';
+  btn.className = 'clear-arrows-btn';
+  btn.style.marginLeft = '8px';
+  btn.addEventListener('click', () => {
+    window.parent.postMessage({ type: 'CA_CLEAR_ARROWS' }, '*');
+  });
+  hdr.appendChild(btn);
+})();
 
 function moveNumberLabel(i, color) {
   const mv = Math.floor(i / 2) + 1;
